@@ -1,0 +1,83 @@
+# Especificación a usar por docker compose
+version: "3.9"
+
+services:
+  # Configurando MySql
+  mysql-db:
+    container_name: mysql-db
+    image: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: micro_usuarios
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - spring
+
+  # Configurando Postgres
+  postgres-db:
+    container_name: postgres-db
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: micro_cursos
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - spring
+
+  msvc-usuarios:
+    container_name: msvc-usuarios
+    image: dmedinao11/usuarios
+# Usando construcción local
+#    build:
+#      context: ./
+#      dockerfile: ./msvc-usuarios/Dockerfile
+    ports:
+      - "8001:8001"
+    networks:
+      - spring
+    environment:
+      PORT: 8001
+      DB_HOST: mysql-db:3306
+      DB_NAME: micro_usuarios
+#    env_file:
+#      - ./msvc-usuarios/.env
+    depends_on:
+      - mysql-db
+    restart: on-failure
+
+
+  msvc-cursos:
+    container_name: msvc-cursos
+    image: dmedinao11/cursos
+#    build:
+#      context: ./
+#      dockerfile: ./msvc-cursos/Dockerfile
+    ports:
+      - "8002:8002"
+    networks:
+      - spring
+    environment:
+      PORT: 8002
+      DB_HOST: postgres-db:5432
+      DB_NAME: micro_cursos
+      MSVC_USUARIOS_URL: msvc-usuarios:8001
+    depends_on:
+      - postgres-db
+      - msvc-usuarios
+
+# Definiendo volumes
+volumes:
+  mysql-data:
+    # Se coloca el name para que utilice el volume local
+    name: mysql-data
+  postgres-data:
+    name: postgres-data
+# Definiendo redes
+networks:
+  spring:
